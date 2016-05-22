@@ -10,7 +10,8 @@
 #   ['puppet_conf']              - The puppet config dir
 #   ['puppet_ssldir']            - The pupet ssl dir
 #   ['certname']                 - The puppet certname
-#   [conf_dir]                   - The configuration directory of the puppet install
+#   [conf_dir]                   - The configuration directory of the puppet
+#                                  install
 #
 # Actions:
 # - Configures apache and passenger for puppet master use.
@@ -51,9 +52,10 @@ class puppet::passenger(
   $passenger_stat_throttle_rate = 10,
   $passenger_root,
   $passenger_disable_mod_status = true,
+  $ca = true,
 ){
 
-  class { 'apache':
+  class { '::apache':
     default_mods        => false,
     default_confd_files => false,
     default_vhost       => false,
@@ -66,8 +68,8 @@ class puppet::passenger(
     apache::mod { 'status': package_ensure => 'absent' }
   }
 
-  include puppet::params
-  class { 'apache::mod::passenger':
+  include ::puppet::params
+  class { '::apache::mod::passenger':
     passenger_max_pool_size      => $passenger_max_pool_size,
     passenger_high_performance   => $passenger_high_performance,
     passenger_max_requests       => $passenger_max_requests,
@@ -75,7 +77,7 @@ class puppet::passenger(
     passenger_root               => $passenger_root,
   }
 
-  class { 'apache::mod::ssl':
+  class { '::apache::mod::ssl':
     ssl_protocol => [$puppet_passenger_ssl_protocol],
     ssl_cipher   => $puppet_passenger_ssl_cipher,
   }
@@ -107,8 +109,10 @@ class puppet::passenger(
     $crt_clean_cmd  = "puppet cert clean ${certname}"
     # I would have preferred to use puppet cert generate, but it does not
     # return the corret exit code on some versions of puppet
-    $crt_gen_cmd   = "puppet certificate --ca-location=local --dns_alt_names=${dns_alt_names} generate ${certname}"
-    # I am using the sign command here b/c AFAICT, the sign command for certificate
+    $crt_gen_cmd   = "puppet certificate --ca-location=local \
+     --dns_alt_names=${dns_alt_names} generate ${certname}"
+    # I am using the sign command here b/c AFAICT, the sign command for
+    # certificate
     # does not work
     $crt_sign_cmd  = "puppet cert sign --allow-dns-alt-names ${certname}"
     # find is required to move the cert into the certs directory which is
@@ -116,11 +120,12 @@ class puppet::passenger(
     $cert_find_cmd = "puppet certificate --ca-location=local find ${certname}"
 
     exec { 'Certificate_Check':
-      command   => "${crt_clean_cmd} ; ${crt_gen_cmd} && ${crt_sign_cmd} && ${cert_find_cmd}",
+      command   => "${crt_clean_cmd} ; ${crt_gen_cmd} && ${crt_sign_cmd} \
+                      && ${cert_find_cmd}",
       unless    => "/bin/ls ${puppet_ssldir}/certs/${certname}.pem",
       path      => '/usr/bin:/usr/local/bin',
       logoutput => on_failure,
-      require   => File[$puppet_conf]
+      require   => File[$puppet_conf],
     }
   }
 
@@ -129,6 +134,16 @@ class puppet::passenger(
     owner  => $::puppet::params::puppet_user,
     group  => $::puppet::params::puppet_group,
     mode   => '0755',
+  }
+
+  if ($ca) {
+    $ssl_chain = "${puppet_ssldir}/ca/ca_crt.pem"
+    $ssl_ca    = "${puppet_ssldir}/ca/ca_crt.pem"
+    $ssl_crl   = "${puppet_ssldir}/ca/ca_crl.pem"
+  } else {
+    $ssl_chain = "${puppet_ssldir}/certs/ca.pem"
+    $ssl_ca    = "${puppet_ssldir}/certs/ca.pem"
+    $ssl_crl   = "${puppet_ssldir}/crl.pem"
   }
 
   apache::vhost { "puppet-${certname}":
@@ -140,9 +155,9 @@ class puppet::passenger(
     ssl                  => true,
     ssl_cert             => "${puppet_ssldir}/certs/${certname}.pem",
     ssl_key              => "${puppet_ssldir}/private_keys/${certname}.pem",
-    ssl_chain            => "${puppet_ssldir}/ca/ca_crt.pem",
-    ssl_ca               => "${puppet_ssldir}/ca/ca_crt.pem",
-    ssl_crl              => "${puppet_ssldir}/ca/ca_crl.pem",
+    ssl_chain            => $ssl_chain,
+    ssl_ca               => $ssl_ca,
+    ssl_crl              => $ssl_crl,
     ssl_protocol         => $::puppet::params::ssl_protocol,
     ssl_cipher           => $::puppet::params::ssl_cipher,
     ssl_honorcipherorder => 'On',
@@ -159,8 +174,12 @@ class puppet::passenger(
         options => 'None',
       },
     ],
-    require              => [ File['/etc/puppet/rack/config.ru'], File[$puppet_conf] ],
+    require              => [
+      File['/etc/puppet/rack/config.ru'],
+      File[$puppet_conf]
+    ],
   }
+
 
   #Hack to add extra passenger configurations for puppetmaster
   file { 'puppet_passenger.conf':

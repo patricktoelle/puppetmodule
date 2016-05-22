@@ -8,10 +8,12 @@
 #  ['modulepath']               - Module path to be served by the puppet master
 #  ['manifest']                 - Manifest path
 #  ['external_nodes']           - ENC script path
-#  ['node_terminus']            - Node terminus setting, is overridden to 'exec' if external_nodes is set
+#  ['node_terminus']            - Node terminus setting, is overridden to
+#                                 'exec' if external_nodes is set
 #  ['hiera_config']             - Hiera config file path
 #  ['environments']             - Which environment method (directory or config)
-#  ['environmentpath']          - Puppet environment base path (use with environments directory)
+#  ['environmentpath']          - Puppet environment base path (use with
+#                                 environments directory)
 #  ['reports']                  - Turn on puppet reports
 #  ['storeconfigs']             - Use storedconfigs
 #  ['storeconfigs_dbserver']    - Puppetdb server
@@ -25,7 +27,8 @@
 #  ['puppet_passenger_port']    - Port to configure passenger on default 8140
 #  ['puppet_master_package']    - Puppet master package
 #  ['puppet_master_service']    - Puppet master service
-#  ['version']                  - Version of the puppet master package to install
+#  ['version']                  - Version of the puppet master
+#                                 package to install
 #  ['apache_serveradmin']       - Apache server admin
 #  ['pluginsync']               - Enable plugin sync
 #  ['parser']                   - Which parser to use
@@ -33,10 +36,20 @@
 #  ['dns_alt_names']            - Comma separated list of alternative DNS names
 #  ['digest_algorithm']         - The algorithm to use for file digests.
 #  ['generate_ssl_certs']       - Generate ssl certs (false to disable)
-#  ['strict_variables']         - Makes the parser raise errors when referencing unknown variables
-#  ['always_cache_features']    - if false (default), always try to load a feature even if a previous load failed
-#  ['serialization_format']     - defaults to undef, otherwise it sets the preferred_serialization_format param (currently only msgpack is supported)
-#  ['serialization_package']    - defaults to undef, if provided, we install this package, otherwise we fall back to the gem from 'serialization_format'
+#  ['strict_variables']         - Makes the parser raise errors when
+#                                 referencing unknown variables
+#  ['always_cache_features']    - if false (default), always try to load a
+#                                 feature even if a previous load failed
+#  ['serialization_format']     - defaults to undef, otherwise it sets the
+#                                 preferred_serialization_format param
+#                                 (currently only msgpack is supported)
+#  ['serialization_package']    - defaults to undef, if provided, we install
+#                                 this package, otherwise we fall back to the
+#                                 gem from 'serialization_format'
+#  ['ca']                       - defaults to true, if false, puppetmaster
+#                                 will not act as an certificate authority
+#                                 and will rely on external ca. Use combined
+#                                 with srv records only
 #
 # Requires:
 #
@@ -78,8 +91,10 @@ class puppet::master (
   $puppet_docroot                = $::puppet::params::puppet_docroot,
   $puppet_vardir                 = $::puppet::params::puppet_vardir,
   $puppet_passenger_port         = $::puppet::params::puppet_passenger_port,
-  $puppet_passenger_ssl_protocol = $::puppet::params::puppet_passenger_ssl_protocol,
-  $puppet_passenger_ssl_cipher   = $::puppet::params::puppet_passenger_ssl_cipher,
+  $puppet_passenger_ssl_protocol =
+    $::puppet::params::puppet_passenger_ssl_protocol,
+  $puppet_passenger_ssl_cipher   =
+    $::puppet::params::puppet_passenger_ssl_cipher,
   $puppet_passenger_tempdir      = false,
   $puppet_passenger_cfg_addon    = '',
   $puppet_master_package         = $::puppet::params::puppet_master_package,
@@ -89,7 +104,8 @@ class puppet::master (
   $pluginsync                    = true,
   $parser                        = $::puppet::params::parser,
   $puppetdb_startup_timeout      = '60',
-  $puppetdb_strict_validation    = $::puppet::params::puppetdb_strict_validation,
+  $puppetdb_strict_validation    =
+    $::puppet::params::puppetdb_strict_validation,
   $dns_alt_names                 = ['puppet'],
   $digest_algorithm              = $::puppet::params::digest_algorithm,
   $generate_ssl_certs            = true,
@@ -104,6 +120,7 @@ class puppet::master (
   $passenger_disable_mod_status  = true,
   $serialization_format          = undef,
   $serialization_package         = undef,
+  $ca                            = true,
 ) inherits puppet::params {
 
   anchor { 'puppet::master::begin': }
@@ -161,6 +178,7 @@ class puppet::master (
     passenger_stat_throttle_rate  => $passenger_stat_throttle_rate,
     passenger_root                => $passenger_root,
     passenger_disable_mod_status  => $passenger_disable_mod_status,
+    ca                            => $ca,
   } ->
   Anchor['puppet::master::end']
 
@@ -208,12 +226,12 @@ class puppet::master (
     owner   => $::puppet::params::puppet_user,
     group   => $::puppet::params::puppet_group,
     notify  => Service['httpd'],
-    require => Package[$puppet_master_package]
+    require => Package[$puppet_master_package],
   }
 
   if $storeconfigs {
     Anchor['puppet::master::begin'] ->
-    class { 'puppet::storeconfigs':
+    class { '::puppet::storeconfigs':
       dbserver                   => $storeconfigs_dbserver,
       dbport                     => $storeconfigs_dbport,
       puppet_service             => Service['httpd'],
@@ -273,14 +291,14 @@ class puppet::master (
     ini_setting {'puppetmasternodeterminus':
       ensure  => present,
       setting => 'node_terminus',
-      value   => 'exec'
+      value   => 'exec',
     }
   }
   elsif $node_terminus != undef {
     ini_setting {'puppetmasternodeterminus':
       ensure  => present,
       setting => 'node_terminus',
-      value   => $node_terminus
+      value   => $node_terminus,
     }
   }
 
@@ -294,6 +312,12 @@ class puppet::master (
     ensure  => present,
     setting => 'autosign',
     value   => $autosign,
+  }
+
+  ini_setting {'puppetmasterca':
+    ensure  => present,
+    setting => 'ca',
+    value   => $ca,
   }
 
   ini_setting {'puppetmastercertname':
