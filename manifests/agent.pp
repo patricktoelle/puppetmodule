@@ -8,38 +8,57 @@
 #   ['puppet_agent_service']  - The service the puppet agent runs under
 #   ['mac_version']           - The package version for Mac OS X
 #   ['mac_facter_version']    - The Factor Version for Mac OS X
-#   ['puppet_agent_package']  - The name of the package providing the puppet agent
+#   ['puppet_agent_package']  - The name of the package providing the
+#                               puppet agent
 #   ['version']               - The version of the puppet agent to install
-#   ['puppet_run_style']      - The run style of the agent either 'service', 'cron', 'external' or 'manual'
-#   ['puppet_run_interval']   - The run interval of the puppet agent in minutes, default is 30 minutes
-#   ['puppet_run_command']    - The command that will be executed for puppet agent run
+#   ['puppet_run_style']      - The run style of the agent either 'service',
+#                               'cron', 'external' or 'manual'
+#   ['puppet_run_interval']   - The run interval of the puppet agent in
+#                               minutes, default is 30 minutes
+#   ['puppet_run_command']    - The command that will be executed for
+#                               puppet agent run
 #   ['user_id']               - The userid of the puppet user
 #   ['group_id']              - The groupid of the puppet group
 #   ['splay']                 - If splay should be enable defaults to false
 #   ['splaylimit']            - The maximum time to delay before runs.
-#   ['classfile']             - The file in which puppet agent stores a list of the classes 
-#                               associated with the retrieved configuration. 
+#   ['classfile']             - The file in which puppet agent stores a list
+#                               of the classes associated with the retrieved
+#                               configuration.
 #   ['logdir']                - The directory in which to store log files
 #   ['environment']           - The environment of the puppet agent
 #   ['report']                - Whether to return reports
 #   ['pluginsync']            - Whethere to have pluginsync
 #   ['use_srv_records']       - Whethere to use srv records
 #   ['srv_domain']            - Domain to request the srv records
-#   ['ordering']              - The way the agent processes resources. New feature in puppet 3.3.0
+#   ['ordering']              - The way the agent processes resources.
+#                               New feature in puppet 3.3.0
 #   ['trusted_node_data']     - Enable the trusted facts hash
 #   ['listen']                - If puppet agent should listen for connections
 #   ['reportserver']          - The server to send transaction reports to.
 #   ['digest_algorithm']      - The algorithm to use for file digests.
-#   ['templatedir']           - Template dir, if unset it will remove the setting.
-#   ['configtimeout']         - How long the client should wait for the configuration to be retrieved before considering it a failure
-#   ['stringify_facts']       - Wether puppet transforms structured facts in strings or no. Defaults to true in puppet < 4, deprecated in puppet >=4 (and will default to false)
+#   ['templatedir']           - Template dir, if unset it will remove
+#                               the setting.
+#   ['configtimeout']         - How long the client should wait for the
+#                               configuration to be retrieved before
+#                               considering it a failure
+#   ['stringify_facts']       - Whether puppet transforms structured facts in
+#                               strings or no. Defaults to true in puppet < 4,
+#                               deprecated in puppet >=4 (and will default
+#                               to false)
 #   ['cron_hour']             - What hour to run if puppet_run_style is cron
 #   ['cron_minute']           - What minute to run if puppet_run_style is cron
-#   ['serialization_format']  - defaults to undef, otherwise it sets the preferred_serialization_format param (currently only msgpack is supported)
-#   ['serialization_package'] - defaults to undef, if provided, we install this package, otherwise we fall back to the gem from 'serialization_format'
-#   ['http_proxy_host']       - The hostname of an HTTP proxy to use for agent -> master connections
+#   ['serialization_format']  - defaults to undef, otherwise it sets the
+#                               preferred_serialization_format param
+#                               (currently only msgpack is supported)
+#   ['serialization_package'] - defaults to undef, if provided, we install
+#                               this package, otherwise we fall back to the
+#                               gem from 'serialization_format'
+#   ['http_proxy_host']       - The hostname of an HTTP proxy to use
+#                               for agent -> master connections
 #   ['http_proxy_port']       - The port to use when puppet uses an HTTP proxy
-#   ['localconfig']           - Where puppet agent caches the local configuration. An extension indicating the cache format is added automatically.
+#   ['localconfig']           - Where puppet agent caches the local
+#                               configuration. An extension indicating the
+#                               cache format is added automatically.
 #   ['rundir']                - Where Puppet PID files are kept.
 #   ['puppet_ssldir']         - Puppet sll directory
 #
@@ -62,7 +81,8 @@ class puppet::agent(
   $version                = 'present',
   $puppet_facter_package  = $::puppet::params::puppet_facter_package,
   $puppet_run_style       = 'service',
-  $puppet_run_command     = '/usr/bin/puppet agent --no-daemonize --onetime --logdest syslog > /dev/null 2>&1',
+  $puppet_run_command     = "/usr/bin/puppet agent --no-daemonize --onetime \
+                            --logdest syslog > /dev/null 2>&1",
   $user_id                = undef,
   $group_id               = undef,
   $package_provider       = $::puppet::params::package_provider,
@@ -84,7 +104,7 @@ class puppet::agent(
   $puppet_run_interval    = $::puppet::params::puppet_run_interval,
   $splay                  = false,
 
-  # $splaylimit defaults to $runinterval per Puppetlabs docs:  
+  # $splaylimit defaults to $runinterval per Puppetlabs docs:
   # http://docs.puppetlabs.com/references/latest/configuration.html#splaylimit
   $splaylimit             = $::puppet::params::puppet_run_interval,
   $classfile              = $::puppet::params::classfile,
@@ -129,12 +149,14 @@ class puppet::agent(
       package {$puppet_facter_package:
         ensure   => present,
         provider => $package_provider,
-        source   => "https://downloads.puppetlabs.com/mac/${puppet_facter_package}",
+        source   =>
+          "https://downloads.puppetlabs.com/mac/${puppet_facter_package}",
       }
       package { $puppet_agent_package:
         ensure   => present,
         provider => $package_provider,
-        source   => "https://downloads.puppetlabs.com/mac/${puppet_agent_package}"
+        source   =>
+          "https://downloads.puppetlabs.com/mac/${puppet_agent_package}",
       }
     }
     default: {
@@ -152,7 +174,8 @@ class puppet::agent(
     $startonboot = 'no'
   }
 
-  if ($::osfamily == 'Debian' and $puppet_run_style != 'manual') or ($::osfamily == 'Redhat') {
+  if ($::osfamily == 'Debian' and $puppet_run_style != 'manual')
+      or ($::osfamily == 'Redhat') {
     file { $puppet::params::puppet_defaults:
       mode    => '0644',
       owner   => 'root',
@@ -205,7 +228,7 @@ class puppet::agent(
       $service_enable = false
     }
     # Do not manage the Puppet service and don't touch Debian's defaults file.
-    manual: {
+    'manual': {
       $service_ensure = undef
       $service_enable = undef
     }
@@ -220,7 +243,10 @@ class puppet::agent(
       enable     => $service_enable,
       hasstatus  => true,
       hasrestart => true,
-      subscribe  => [File[$::puppet::params::puppet_conf], File[$::puppet::params::confdir]],
+      subscribe  => [
+        File[$::puppet::params::puppet_conf],
+        File[$::puppet::params::confdir]
+      ],
       require    => Package[$puppet_agent_package],
     }
   }
@@ -254,7 +280,8 @@ class puppet::agent(
 
   if (($use_srv_records == true) and ($srv_domain == undef))
   {
-    fail("${module_name} has attribute use_srv_records set but has srv_domain unset")
+    fail("${module_name} has attribute \
+          use_srv_records set but has srv_domain unset")
   }
   elsif (($use_srv_records == true) and ($srv_domain != undef))
   {
@@ -268,6 +295,14 @@ class puppet::agent(
     ini_setting {'puppetagentsrv_domain':
       ensure  => absent,
       setting => 'srv_domain',
+    }
+    ini_setting {'puppetagentmaster':
+      setting => 'server',
+      value   => $puppet_server,
+    }
+    ini_setting {'puppetagentreportserver':
+      setting => 'reportserver',
+      value   => $reportserver,
     }
   }
 
@@ -292,7 +327,7 @@ class puppet::agent(
       value   => $puppet_ssldir,
     }
   }
-  
+
   # rundir has no default and must be provided.
   ini_setting {'puppetagentrundir':
     ensure  => present,
@@ -321,11 +356,6 @@ class puppet::agent(
   ini_setting {'puppetagentenvironment':
     setting => 'environment',
     value   => $environment,
-  }
-
-  ini_setting {'puppetagentmaster':
-    setting => 'server',
-    value   => $puppet_server,
   }
 
   ini_setting {'puppetagentuse_srv_records':
@@ -370,10 +400,6 @@ class puppet::agent(
   ini_setting {'puppetagentlisten':
     setting => 'listen',
     value   => $listen,
-  }
-  ini_setting {'puppetagentreportserver':
-    setting => 'reportserver',
-    value   => $reportserver,
   }
   ini_setting {'puppetagentdigestalgorithm':
     setting => 'digest_algorithm',
